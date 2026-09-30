@@ -1,0 +1,37 @@
+@startuml
+title UC-04 - Solicitar devolução (sequência)
+autonumber
+
+actor "Usuário que perdeu" as U
+box "Campus Achados"
+  participant "App Mobile" as App
+  participant "API" as API
+  database "Banco de Dados" as DB
+end box
+participant "Serviço de Notificações" as SN <<externo>>
+
+U -> App : informa comprovação e confirma
+App -> API : POST /solicitacoes (objetoId, comprovacao)
+API -> DB : buscar objeto
+DB --> API : objeto
+
+alt status != ENCONTRADO
+  API --> App : 409 objeto indisponível
+  App --> U : mensagem de erro
+else comprovação vazia
+  API --> App : 422 comprovação obrigatória
+  App --> U : solicita preenchimento
+else válido
+  API -> DB : salvar solicitação (PENDENTE)
+  API -> DB : atualizar objeto (EM_DEVOLUCAO)
+  API -> SN : enviarNotificacao(responsável, solicitaçãoId)
+  alt Serviço indisponível
+    SN --> API : erro/timeout
+    API -> DB : registrar notificação para reenvio
+  else ok
+    SN --> API : 202 aceita
+  end
+  API --> App : 201 solicitação registrada
+  App --> U : confirmação
+end
+@enduml

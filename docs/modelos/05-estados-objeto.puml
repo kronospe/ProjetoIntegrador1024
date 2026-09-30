@@ -1,0 +1,15 @@
+@startuml
+title Ciclo de vida da entidade Objeto
+
+[*] --> Perdido : cadastrar perdido (RF-02)
+[*] --> Encontrado : cadastrar encontrado (RF-01)
+
+Encontrado --> EmDevolucao : solicitação criada (RF-04)
+EmDevolucao --> Devolvido : solicitação aprovada\ne objeto entregue
+EmDevolucao --> Encontrado : solicitação rejeitada/cancelada
+
+Perdido --> Encerrado : dono recuperou / cadastro removido
+
+Devolvido --> [*]
+Encerrado --> [*]
+@enduml

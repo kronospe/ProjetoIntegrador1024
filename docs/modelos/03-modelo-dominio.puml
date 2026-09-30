@@ -1,0 +1,81 @@
+@startuml
+title Campus Achados Mobile Edition - Modelo de Domínio
+hide circle
+skinparam classAttributeIconSize 0
+
+enum StatusObjeto {
+  PERDIDO
+  ENCONTRADO
+  EM_DEVOLUCAO
+  DEVOLVIDO
+}
+
+enum StatusSolicitacao {
+  PENDENTE
+  APROVADA
+  REJEITADA
+}
+
+class Usuario {
+  id
+  nome
+  email
+  matricula
+}
+
+class Objeto {
+  id
+  descricao
+  data
+  status : StatusObjeto
+}
+
+class Categoria {
+  id
+  nome
+}
+
+class Local {
+  id
+  nome
+}
+
+class Foto {
+  id
+  url
+}
+
+class SolicitacaoDevolucao {
+  id
+  dataSolicitacao
+  status : StatusSolicitacao
+}
+
+class InformacaoComprovacao {
+  id
+  descricao
+}
+
+class Notificacao {
+  id
+  mensagem
+  dataEnvio
+}
+
+Usuario "1" -- "0..*" Objeto : cadastra >
+Objeto "*" -- "1" Categoria
+Objeto "*" -- "1" Local
+Objeto "1" *-- "0..*" Foto
+Usuario "1" -- "0..*" SolicitacaoDevolucao : solicita >
+Objeto "1" -- "0..*" SolicitacaoDevolucao : é alvo de >
+SolicitacaoDevolucao "1" *-- "1..*" InformacaoComprovacao
+Usuario "1" -- "0..*" Notificacao : recebe >
+SolicitacaoDevolucao "1" -- "0..*" Notificacao : origina >
+
+Objeto ..> StatusObjeto
+SolicitacaoDevolucao ..> StatusSolicitacao
+
+note bottom of Foto
+  Objeto ENCONTRADO exige >= 1 foto (RF-01)
+end note
+@enduml

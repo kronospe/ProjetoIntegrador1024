@@ -1,0 +1,41 @@
+@startuml
+title Campus Achados Mobile Edition - Diagrama de Casos de Uso
+left to right direction
+
+actor "Usuário" as U
+actor "Usuário que perdeu" as UP
+actor "Usuário que encontrou" as UE
+actor "Responsável pela operação" as OP
+actor "Serviço de Notificações" as SN <<externo>>
+
+UP --|> U
+UE --|> U
+
+rectangle "Campus Achados Mobile Edition" {
+  usecase "Autenticar-se" as UC00
+  usecase "Cadastrar objeto encontrado\n(RF-01)" as UC01
+  usecase "Cadastrar objeto perdido\n(RF-02)" as UC02
+  usecase "Consultar objetos\n(RF-03)" as UC03
+  usecase "Pesquisar por palavra-chave\n(RF-05)" as UC05
+  usecase "Filtrar por categoria/local/data\n(RF-06)" as UC06
+  usecase "Solicitar devolução\n(RF-04, RF-07)" as UC04
+  usecase "Notificar responsável\n(RF-08)" as UC08
+  usecase "Analisar solicitação de devolução" as UC09
+  usecase "Acompanhar status das solicitações\n(RF-07)" as UC07
+}
+
+U --> UC03
+UE --> UC01
+UP --> UC02
+UP --> UC04
+UE --> UC09
+OP --> UC07
+UC08 --> SN
+
+UC05 .> UC03 : <<extend>>
+UC06 .> UC03 : <<extend>>
+UC01 .> UC00 : <<include>>
+UC02 .> UC00 : <<include>>
+UC04 .> UC00 : <<include>>
+UC04 .> UC08 : <<include>>
+@enduml
