@@ -1,0 +1,46 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Reivindicar — {{ item.nome }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/forms.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="form-wrap">
+
+  <a href="{% url 'entidades:detalhe_item' item.pk %}" class="back-link">← Voltar para o item</a>
+
+  <div class="card">
+    <h2 class="form-title">Reivindicar item</h2>
+    <p class="form-subtitle">Descreva como esse item é seu para enviar a solicitação.</p>
+
+    <!-- Resumo do item -->
+    <div class="reiv-item-resumo">
+      <span class="tag tag-{{ item.situacao_Item }}">{{ item.get_situacao_Item_display }}</span>
+      <strong>{{ item.nome }}</strong>
+      <span class="reiv-local">📍 {{ item.get_local_display }}</span>
+    </div>
+
+    <form method="POST" novalidate>
+      {% csrf_token %}
+
+      <div class="field {% if form.descricao_prova.errors %}field-has-error{% endif %}">
+        <label for="{{ form.descricao_prova.id_for_label }}">Prove que o item é seu</label>
+        {{ form.descricao_prova }}
+        <span class="field-hint">Descreva detalhes únicos do item que só o dono saberia.</span>
+        {% for erro in form.descricao_prova.errors %}
+          <span class="field-error">{{ erro }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'entidades:detalhe_item' item.pk %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Enviar reivindicação</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

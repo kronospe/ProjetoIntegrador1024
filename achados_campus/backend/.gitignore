@@ -1,0 +1,14 @@
+ # Ambiente virtual
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Banco SQLite
+db.sqlite3
+
+# Variáveis de ambiente
+.env
+media/
+staticfiles/

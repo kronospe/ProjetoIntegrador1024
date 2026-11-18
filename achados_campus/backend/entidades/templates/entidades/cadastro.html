@@ -1,0 +1,198 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Criar conta — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cadastro.css' %}" />
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<main class="cad-root">
+  <div class="cad-card">
+
+    <!-- Sucesso -->
+    <div class="cad-success" id="cad-success" style="display:none">
+      <div class="cad-success-icon">✓</div>
+      <h1 class="cad-title">Conta criada!</h1>
+      <p class="cad-subtitle">Bem-vindo(a)! Sua conta foi criada com sucesso.</p>
+      <a href="{% url 'entidades:login' %}" class="cad-btn">Ir para o login</a>
+    </div>
+
+    <!-- Formulário -->
+    <div id="cad-form-wrap">
+      <div class="cad-brand">
+        <span class="login-logo">🔍</span>
+        <h1 class="cad-title">Criar conta</h1>
+        <p class="cad-subtitle">Preencha os dados para se cadastrar</p>
+      </div>
+
+      <form method="POST" action="{% url 'entidades:cadastro' %}" class="cad-form" novalidate id="cad-form">
+        {% csrf_token %}
+
+        <div class="cad-field" id="field-name">
+          <label for="name" class="cad-label">Nome completo</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            autocomplete="name"
+            placeholder="Digite seu nome completo"
+            class="cad-input"
+            required
+          />
+          <span class="cad-field-error" id="err-name"></span>
+        </div>
+
+        <div class="cad-field" id="field-email">
+          <label for="email" class="cad-label">E-mail</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="voce@exemplo.com"
+            class="cad-input"
+            required
+          />
+          <span class="cad-field-error" id="err-email"></span>
+        </div>
+
+        <div class="cad-row">
+          <div class="cad-field" id="field-password">
+            <label for="password" class="cad-label">Senha</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              placeholder="Mín. 8 caracteres"
+              class="cad-input"
+              required
+              oninput="updateStrength()"
+            />
+            <span class="cad-field-error" id="err-password"></span>
+          </div>
+
+          <div class="cad-field" id="field-confirm">
+            <label for="confirm" class="cad-label">Confirmar senha</label>
+            <input
+              id="confirm"
+              name="confirm"
+              type="password"
+              autocomplete="new-password"
+              placeholder="Repita a senha"
+              class="cad-input"
+              required
+            />
+            <span class="cad-field-error" id="err-confirm"></span>
+          </div>
+        </div>
+
+        <!-- Indicador de força -->
+        <div id="strength-wrap" style="display:none; margin-top:-0.3rem">
+          <div class="cad-strength-bars">
+            <div class="cad-bar" id="bar-0"></div>
+            <div class="cad-bar" id="bar-1"></div>
+            <div class="cad-bar" id="bar-2"></div>
+            <div class="cad-bar" id="bar-3"></div>
+          </div>
+          <span class="cad-strength-label" id="strength-label"></span>
+        </div>
+
+        <button type="submit" class="cad-btn" id="cad-submit">
+          Criar conta
+        </button>
+      </form>
+
+      <p class="cad-login">
+        Já tem uma conta?
+        <a href="{% url 'entidades:login' %}" class="cad-login-link">Entrar</a>
+      </p>
+    </div>
+
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const COLORS = ["#ff4444","#ff8800","#f0b429","#00c48c","#00c48c"];
+  const LABELS = ["Muito fraca","Fraca","Média","Forte","Muito forte"];
+
+  function updateStrength() {
+    const pass = document.getElementById('password').value;
+    const wrap = document.getElementById('strength-wrap');
+
+    if (!pass) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+
+    const checks = [
+      pass.length >= 8,
+      /[A-Z]/.test(pass),
+      /[0-9]/.test(pass),
+      /[^A-Za-z0-9]/.test(pass),
+    ];
+    const score = checks.filter(Boolean).length;
+
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('bar-' + i).style.background =
+        i < score ? COLORS[score] : 'rgba(255,255,255,0.1)';
+    }
+    const lbl = document.getElementById('strength-label');
+    lbl.textContent = LABELS[score];
+    lbl.style.color  = COLORS[score];
+  }
+
+  document.getElementById('cad-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let valid = true;
+
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirm  = document.getElementById('confirm').value;
+
+    // Limpa erros
+    ['name','email','password','confirm'].forEach(function(f) {
+      document.getElementById('err-' + f).textContent = '';
+      document.getElementById('field-' + f).querySelector('.cad-input').classList.remove('cad-input-error');
+    });
+
+    if (!name) {
+      showError('name', 'Informe seu nome.');
+      valid = false;
+    }
+    if (!email.includes('@')) {
+      showError('email', 'E-mail inválido.');
+      valid = false;
+    }
+    if (password.length < 8) {
+      showError('password', 'Mínimo de 8 caracteres.');
+      valid = false;
+    }
+    if (password !== confirm) {
+      showError('confirm', 'As senhas não coincidem.');
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // Loading
+    const btn = document.getElementById('cad-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="cad-spinner"></span>';
+
+    // Submete o form de verdade (POST para o Django)
+    this.submit();
+  });
+
+  function showError(field, msg) {
+    document.getElementById('err-' + field).textContent = msg;
+    document.getElementById('field-' + field)
+      .querySelector('.cad-input').classList.add('cad-input-error');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}{{ acao }} Item — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/forms.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="form-wrap">
+
+  <a href="{% url 'entidades:lista_itens' %}" class="back-link">← Voltar para lista</a>
+
+  <div class="card">
+    <h2 class="form-title">{{ acao }} item</h2>
+    <p class="form-subtitle">Preencha as informações do item</p>
+
+    <form method="POST" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      <div class="grid-2">
+        <div class="field {% if forms.nome.errors %}field-has-error{% endif %}">
+          <label for="{{ forms.nome.id_for_label }}">Nome do item</label>
+          {{ forms.nome }}
+          {% for erro in forms.nome.errors %}
+            <span class="field-error">{{ erro }}</span>
+          {% endfor %}
+        </div>
+      
+
+        <div class="field {% if forms.data_encontro.errors %}field-has-error{% endif %}">
+          <label for="{{ forms.data_encontro.id_for_label }}">Data do encontro</label>
+          {{ forms.data_encontro }}
+          {% for erro in forms.data_encontro.errors %}
+            <span class="field-error">{{ erro }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field {% if forms.situacao_Item.errors %}field-has-error{% endif %}">
+          <label for="{{ forms.situacao_Item.id_for_label }}">Situação</label>
+          {{ forms.situacao_Item }}
+          {% for erro in forms.situacao_Item.errors %}
+            <span class="field-error">{{ erro }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="field {% if forms.local.errors %}field-has-error{% endif %}">
+          <label for="{{ forms.local.id_for_label }}">Local</label>
+          {{ forms.local }}
+          {% for erro in forms.local.errors %}
+            <span class="field-error">{{ erro }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="field {% if forms.status_Item.errors %}field-has-error{% endif %}">
+        <label for="{{ forms.status_Item.id_for_label }}">Status</label>
+        {{ forms.status_Item }}
+        {% for erro in forms.status_Item.errors %}
+          <span class="field-error">{{ erro }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="field {% if forms.descricao.errors %}field-has-error{% endif %}">
+        <label for="{{ forms.descricao.id_for_label }}">Descrição</label>
+        {{ forms.descricao }}
+        {% for erro in forms.descricao.errors %}
+          <span class="field-error">{{ erro }}</span>
+        {% endfor %}
+      </div>
+        <!-- Seletor de ícone -->
+<div class="field {% if forms.icone.errors %}field-has-error{% endif %}">
+  <label>Ícone do item</label>
+
+  <div class="icone-grid">
+    {% for valor, label in forms.icone.field.choices %}
+      <button type="button"
+              class="icone-card"
+              data-valor="{{ valor }}"
+              onclick="selecionarIcone(this)">
+        <i class="fa-solid {{ valor }}"></i>
+        <span>{{ label }}</span>
+      </button>
+    {% endfor %}
+  </div>
+
+  {{ forms.icone }}
+
+  {% for erro in forms.icone.errors %}
+    <span class="field-error">{{ erro }}</span>
+  {% endfor %}
+</div>
+      <div class="field {% if forms.foto.errors %}field-has-error{% endif %}">
+        <label for="{{ forms.foto.id_for_label }}">Foto do item (opcional)</label>
+        {{ forms.foto }}
+        {% for erro in forms.foto.errors %}
+          <span class="field-error">{{ erro }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'entidades:lista_itens' %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">{{ acao }} item</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+<script>
+  function selecionarIcone(btn) {
+    document.querySelectorAll('.icone-card').forEach(c => c.classList.remove('selecionado'));
+    btn.classList.add('selecionado');
+    document.getElementById('id_icone').value = btn.dataset.valor;
+    console.log('icone selecionado:', btn.dataset.valor);
+  }
+
+  // Inicializa sem sobrescrever após clique
+  const inputIcone = document.getElementById('id_icone');
+  if (inputIcone) {
+    const atual = inputIcone.value;
+    if (atual) {
+      const btn = document.querySelector(`.icone-card[data-valor="${atual}"]`);
+      if (btn) btn.classList.add('selecionado');
+    } else {
+      const primeiro = document.querySelector('.icone-card');
+      if (primeiro) {
+        primeiro.classList.add('selecionado');
+        inputIcone.value = primeiro.dataset.valor;
+      }
+    }
+  }
+</script>
+{% endblock %}

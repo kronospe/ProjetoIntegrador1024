@@ -1,0 +1,93 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}{{ item.nome }} — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/detalhe.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="detalhe-wrap">
+
+  <a href="{% url 'entidades:lista_itens' %}" class="back-link">← Voltar para lista</a>
+
+  <!-- Hero -->
+  <div class="detalhe-hero card">
+    <div class="detalhe-icon">
+      {% if item.foto %}
+        <img src="{{ item.foto.url }}" alt="{{ item.nome }}" class="detalhe-foto" />
+      {% elif item.icone %}
+        <span class="detalhe-icone"><i class="fa-solid {{ item.icone }}"></i></span>
+      {% else %}
+        <span class="detalhe-emoji">{% if item.situacao_Item == 'perdido' %}🔍{% else %}📦{% endif %}</span>
+      {% endif %}
+    </div>
+
+    <div class="detalhe-hinfo">
+      <div class="detalhe-badges">
+        <span class="tag tag-{{ item.situacao_Item }}">{{ item.get_situacao_Item_display }}</span>
+        <span class="tag tag-{{ item.status_Item }}">{{ item.get_status_Item_display }}</span>
+      </div>
+      <h1 class="detalhe-nome">{{ item.nome }}</h1>
+      <p class="detalhe-meta">
+        📍 {{ item.get_local_display }} &nbsp;·&nbsp; 📅 {{ item.data_encontro|date:"d/m/Y" }}
+      </p>
+    </div>
+
+    <!-- Ações do dono / staff -->
+    {% if user == item.cadastrado_por or user.is_staff %}
+      <div class="detalhe-acoes-owner">
+        <a href="{% url 'entidades:editar_item' item.pk %}" class="btn btn-secondary">✏️ Editar</a>
+        <a href="{% url 'entidades:excluir_item' item.pk %}" class="btn btn-danger">🗑 Excluir</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Descrição -->
+  <div class="card">
+    <h2 class="card-title">Descrição</h2>
+    <p class="detalhe-desc">{{ item.descricao }}</p>
+  </div>
+
+  <!-- Detalhes -->
+  <div class="card">
+    <h2 class="card-title">Detalhes do item</h2>
+    <dl>
+      <div class="dl-row"><dt>Local</dt><dd>{{ item.get_local_display }}</dd></div>
+      <div class="dl-row"><dt>Data do encontro</dt><dd>{{ item.data_encontro|date:"d/m/Y" }}</dd></div>
+      <div class="dl-row"><dt>Situação</dt><dd><span class="tag tag-{{ item.situacao_Item }}">{{ item.get_situacao_Item_display }}</span></dd></div>
+      <div class="dl-row"><dt>Status</dt><dd><span class="tag tag-{{ item.status_Item }}">{{ item.get_status_Item_display }}</span></dd></div>
+      <div class="dl-row"><dt>Cadastrado por</dt><dd>{{ item.cadastrado_por.get_full_name|default:item.cadastrado_por.username }}</dd></div>
+      <div class="dl-row"><dt>Cadastrado em</dt><dd>{{ item.data_criacao|date:"d/m/Y H:i" }}</dd></div>
+    </dl>
+  </div>
+
+  <!-- Reivindicação -->
+  {% if user.is_authenticated and user != item.cadastrado_por %}
+    {% if item.status_Item == 'ativo' %}
+      <div class="card detalhe-card-reiv">
+        <h2 class="card-title">Este item é seu?</h2>
+        <p class="detalhe-reiv-text">Envie uma reivindicação descrevendo como o item é seu.</p>
+        <a href="{% url 'entidades:reivindicar_item' item.pk %}" class="btn btn-primary">
+          Reivindicar item
+        </a>
+      </div>
+    {% elif item.status_Item == 'reivindicado' %}
+      <div class="card detalhe-card-warning">
+        <h2 class="card-title">Reivindicação em andamento</h2>
+        <p class="detalhe-reiv-text">Este item já possui uma reivindicação pendente de aprovação.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if not user.is_authenticated %}
+    <div class="card detalhe-card-reiv">
+      <p class="detalhe-reiv-text">
+        <a href="{% url 'entidades:login' %}" class="detalhe-link">Faça login</a> para reivindicar este item.
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

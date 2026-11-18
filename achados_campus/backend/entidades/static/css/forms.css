@@ -1,0 +1,149 @@
+/* static/css/forms.css */
+
+.form-wrap { display: flex; flex-direction: column; animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.form-title    { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+.form-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.42); margin-bottom: 1.5rem; }
+
+.form-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.field-has-error input,
+.field-has-error select,
+.field-has-error textarea {
+  border-color: rgba(255,80,80,0.6) !important;
+}
+
+.field-hint {
+  font-size: 0.73rem;
+  color: rgba(255,255,255,0.32);
+  margin-top: 0.15rem;
+}
+
+
+/* Resumo item na reivindicação */
+.reiv-item-resumo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.reiv-local { font-size: 0.78rem; color: rgba(255,255,255,0.38); }
+
+/* Estiliza os widgets do Django dentro do form */
+.card input[type="text"],
+.card input[type="date"],
+.card input[type="email"],
+.card input[type="file"],
+.card select,
+.card textarea {
+  padding: 0.65rem 0.85rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #f0f0f5;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card input[type="file"] {
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.6);
+}
+
+.card input:focus,
+.card select:focus,
+.card textarea:focus {
+  border-color: #7c5cfc;
+  box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+}
+
+.card select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.2rem;
+  cursor: pointer;
+}
+
+.card select option { background: #1a1a2e; color: #f0f0f5; }
+.card textarea       { resize: vertical; min-height: 100px; line-height: 1.55; }
+
+@media (max-width: 540px) {
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .btn { width: 100%; }
+}
+
+.icone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.icone-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.55);
+  transition: all 0.15s ease;
+}
+
+.icone-card i {
+  font-size: 1.5rem;
+  color: rgba(255,255,255,0.4);
+  transition: color 0.15s ease;
+}
+
+.icone-card:hover {
+  border-color: #7c5cfc;
+  background: rgba(124,92,252,0.12);
+  color: rgba(255,255,255,0.9);
+}
+
+.icone-card:hover i {
+  color: #a78bfa;
+}
+
+.icone-card.selecionado {
+  border-color: #7c5cfc;
+  background: rgba(124,92,252,0.2);
+  color: #c4b5fd;
+}
+
+.icone-card.selecionado i {
+  color: #a78bfa;
+}
+
+.field-has-error .icone-grid .icone-card {
+  border-color: rgba(255,80,80,0.4);
+}

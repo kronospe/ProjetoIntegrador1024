@@ -1,0 +1,105 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Itens — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/lista.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="lista-body">
+
+  <div class="lista-section-title">
+    <h2 class="lista-heading">Itens</h2>
+    <span class="lista-count">{{ itens.count }} registro{{ itens.count|pluralize }} encontrado{{ itens.count|pluralize }}</span>
+  </div>
+
+  <!-- Filtros -->
+  <form method="GET" action="{% url 'entidades:lista_itens' %}" class="lista-filters">
+
+    <input
+      type="text"
+      name="q"
+      value="{{ busca }}"
+      placeholder="Buscar por nome..."
+      class="lista-search"
+    />
+
+    <select name="situacao" class="lista-select" onchange="this.form.submit()">
+      <option value="">Todas as situações</option>
+      <option value="perdido"    {% if situacao == 'perdido'    %}selected{% endif %}>Perdido</option>
+      <option value="encontrado" {% if situacao == 'encontrado' %}selected{% endif %}>Encontrado</option>
+    </select>
+
+    <select name="local" class="lista-select" onchange="this.form.submit()">
+      <option value="">Todos os locais</option>
+      <option value="biblioteca"    {% if local == 'biblioteca'    %}selected{% endif %}>Biblioteca</option>
+      <option value="cantina"       {% if local == 'cantina'       %}selected{% endif %}>Cantina</option>
+      <option value="laboratorio"   {% if local == 'laboratorio'   %}selected{% endif %}>Laboratório</option>
+      <option value="sala_aula"     {% if local == 'sala_aula'     %}selected{% endif %}>Sala de Aula</option>
+      <option value="estacionamento"{% if local == 'estacionamento'%}selected{% endif %}>Estacionamento</option>
+      <option value="banheiro"      {% if local == 'banheiro'      %}selected{% endif %}>Banheiro</option>
+      <option value="outro"         {% if local == 'outro'         %}selected{% endif %}>Outro</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary lista-btn-buscar">Buscar</button>
+
+    {% if busca or situacao or local %}
+      <a href="{% url 'entidades:lista_itens' %}" class="btn btn-secondary">Limpar</a>
+    {% endif %}
+
+  </form>
+
+  <!-- Abas -->
+  <div class="lista-tabs">
+    <a href="{% url 'entidades:lista_itens' %}"
+       class="lista-tab {% if not situacao %}lista-tab-active{% endif %}">
+      Todos
+    </a>
+    <a href="{% url 'entidades:lista_itens' %}?situacao=perdido"
+       class="lista-tab {% if situacao == 'perdido' %}lista-tab-active{% endif %}">
+      Perdidos
+    </a>
+    <a href="{% url 'entidades:lista_itens' %}?situacao=encontrado"
+       class="lista-tab {% if situacao == 'encontrado' %}lista-tab-active{% endif %}">
+      Encontrados
+    </a>
+  </div>
+
+  <!-- Lista -->
+  <ul class="lista-list">
+    {% for item in itens %}
+      <li>
+        <a href="{% url 'entidades:detalhe_item' item.pk %}" class="lista-card">
+
+          <div class="lista-card-icon">
+            {% if item.foto %}
+              <img src="{{ item.foto.url }}" alt="{{ item.nome }}" class="lista-card-img" />
+            {% else %}
+              <span class="lista-card-emoji">
+                {% if item.situacao_Item == 'perdido' %}🔍
+                {% else %}📦{% endif %}
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="lista-card-info">
+            <span class="lista-card-nome">{{ item.nome }}</span>
+            <span class="lista-card-meta">{{ item.get_local_display }} · {{ item.data_encontro|date:"d/m/Y" }}</span>
+            <div class="lista-tags">
+              <span class="tag tag-{{ item.situacao_Item }}">{{ item.get_situacao_Item_display }}</span>
+              <span class="tag tag-{{ item.status_Item }}">{{ item.get_status_Item_display }}</span>
+            </div>
+          </div>
+
+          <span class="lista-arrow" aria-hidden="true">›</span>
+        </a>
+      </li>
+    {% empty %}
+      <li class="lista-empty">Nenhum item encontrado.</li>
+    {% endfor %}
+  </ul>
+
+</div>
+{% endblock %}

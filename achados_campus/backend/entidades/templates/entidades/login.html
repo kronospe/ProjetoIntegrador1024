@@ -1,0 +1,60 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Login — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}" />
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<main class="login-root">
+  <div class="login-card">
+
+    <div class="login-brand">
+      <span class="login-logo">🔍</span>
+      <h1 class="login-title">Bem-vindo</h1>
+      <p class="login-subtitle">Entre na sua conta para continuar</p>
+    </div>
+
+    <form method="POST" action="{% url 'entidades:login' %}" class="login-form" novalidate>
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="usuario">Usuário</label>
+        <input
+          type="text"
+          id="usuario"
+          name="usuario"
+          placeholder="seu.usuario"
+          required
+          autocomplete="username"
+          value="{{ request.POST.usuario }}"
+        />
+      </div>
+
+      <div class="field">
+        <div class="login-label-row">
+          <label for="senha">Senha</label>
+        </div>
+        <input
+          type="password"
+          id="senha"
+          name="senha"
+          placeholder="••••••••"
+          required
+          autocomplete="current-password"
+        />
+        <a href="{% url 'entidades:cadastro' %}" class="cad-link">Cadastre-se</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary login-btn">
+        Entrar
+      </button>
+    </form>
+
+  </div>
+</main>
+{% endblock %}

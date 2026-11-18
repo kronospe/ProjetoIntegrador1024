@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CampusAchados{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+  <link rel="stylesheet" 
+      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css" />
+      <link rel="stylesheet" href="{% static 'css/chatbot.css' %}" />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  {% if messages %}
+    <div class="toast-container">
+      {% for message in messages %}
+        <div class="toast toast--{{ message.tags }}">
+          {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% else %}ℹ{% endif %}
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="page-root">
+
+    {% block header %}
+    <header class="main-header">
+      <a href="{% url 'entidades:home' %}" class="brand">
+        <span class="brand-icon">🔍</span>
+        <span class="brand-name">CampusAchados</span>
+      </a>
+      <nav class="nav">
+        <a href="{% url 'entidades:lista_itens' %}" class="nav-link">Itens</a>
+        {% if user.is_authenticated %}
+  <a href="{% url 'entidades:cadastrar_item' %}" class="btn-cadastrar">+ Cadastrar</a>
+  <a href="{% url 'entidades:perfil' %}" class="header-perfil-btn" title="{{ user.get_full_name|default:user.username }}">
+    <span class="header-perfil-av">{{ aluno.avatar|default:"🧑‍💻" }}</span>
+    <span class="header-perfil-nome">{{ user.first_name|default:user.username }}</span>
+  </a>
+  <a href="{% url 'entidades:logout' %}" class="nav-link">Sair</a>
+{% else %}
+  <a href="{% url 'entidades:login' %}" class="btn-cadastrar">Entrar</a>
+{% endif %}
+      </nav>
+    </header>
+    {% endblock %}
+
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+
+  <script>
+    
+    document.querySelectorAll('.toast').forEach(function(t) {
+      setTimeout(function() {
+        t.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(function() { t.remove(); }, 300);
+      }, 3500);
+    });
+  </script>
+
+<div id="chat-widget">
+  <button id="chat-toggle" title="Assistente">
+    <span id="chat-toggle-icon">💬</span>
+  </button>
+  <div id="chat-box" class="chat-hidden">
+    <div id="chat-header">
+      <span>🎓 Assistente CampusAchados</span>
+      <button id="chat-close">✕</button>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-area">
+      <input type="text" id="chat-input" placeholder="Digite sua dúvida..." />
+      <button id="chat-send">➤</button>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const toggle = document.getElementById('chat-toggle');
+  const box    = document.getElementById('chat-box');
+  const close  = document.getElementById('chat-close');
+  const input  = document.getElementById('chat-input');
+  const send   = document.getElementById('chat-send');
+  const msgs   = document.getElementById('chat-messages');
+  let historico = [];
+
+  toggle.addEventListener('click', () => box.classList.toggle('chat-hidden'));
+  close.addEventListener('click',  () => box.classList.add('chat-hidden'));
+
+  function addMsg(texto, tipo) {
+    const el = document.createElement('div');
+    el.className = tipo === 'user' ? 'msg-user' : 'msg-bot';
+    el.textContent = texto;
+    msgs.appendChild(el);
+    msgs.scrollTop = msgs.scrollHeight;
+    return el;
+  }
+
+  async function enviar() {
+    const texto = input.value.trim();
+    if (!texto) return;
+    input.value = '';
+    addMsg(texto, 'user');
+
+    const typing = document.createElement('div');
+    typing.className = 'msg-typing';
+    typing.textContent = 'Digitando...';
+    msgs.appendChild(typing);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    try {
+      const res = await fetch("{% url 'entidades:chatbot' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ mensagem: texto, historico }),
+      });
+      const data = await res.json();
+      typing.remove();
+
+      if (data.resposta) {
+        addMsg(data.resposta, 'bot');
+        historico.push({ role: 'user', content: texto });
+        historico.push({ role: 'assistant', content: data.resposta });
+        // Mantém só as últimas 10 mensagens para não estourar o contexto
+        if (historico.length > 20) historico = historico.slice(-20);
+      } else {
+        addMsg('Erro ao responder. Tente novamente.', 'bot');
+      }
+    } catch(e) {
+      typing.remove();
+      addMsg('Erro de conexão.', 'bot');
+    }
+  }
+
+  send.addEventListener('click', enviar);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') enviar(); });
+
+  // Mensagem de boas-vindas
+  addMsg('Olá! 👋 Sou o assistente do CampusAchados. Como posso te ajudar?', 'bot');
+})();
+</script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

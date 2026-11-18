@@ -1,0 +1,243 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Meu Perfil — CampusAchados{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/perfil.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="pf-page">
+
+  <!-- Hero -->
+  <div class="pf-hero card">
+
+    <div class="pf-av-wrap">
+      <div class="pf-av" id="pf-av-display">
+        {{ aluno.avatar|default:"🧑‍💻" }}
+      </div>
+      <button class="pf-av-btn" id="pf-av-btn" style="display:none"
+              onclick="pfTogglePicker()" type="button" aria-label="Trocar avatar">✏️</button>
+    </div>
+
+    <!-- Avatar picker (oculto até clicar) -->
+    <div class="pf-av-picker" id="pf-av-picker" style="display:none">
+      <p class="pf-av-label">Escolha um avatar</p>
+      <div class="pf-av-grid" id="pf-av-grid"></div>
+      <!-- campo oculto que guarda o avatar escolhido -->
+      <input type="hidden" name="avatar" id="pf-av-input" value="{{ aluno.avatar|default:'🧑‍💻' }}" form="pf-form" />
+    </div>
+
+    <div class="pf-hinfo">
+      <h1 class="pf-nome" id="pf-hero-nome">{{ user.get_full_name|default:user.username }}</h1>
+      <p class="pf-curso" id="pf-hero-curso">{{ aluno.curso|default:"—" }}</p>
+    </div>
+
+    <button class="pf-btn-edit btn" id="pf-btn-edit" onclick="pfStartEdit()" type="button">
+      ✏️ Editar perfil
+    </button>
+  </div>
+
+  <!-- Bio -->
+  <section class="card">
+    <h2 class="card-title">Sobre mim</h2>
+    <div id="pf-bio-view">
+      <p class="pf-bio-text">{{ aluno.bio|default:"Nenhuma descrição adicionada." }}</p>
+    </div>
+    <div id="pf-bio-edit" style="display:none">
+      <textarea name="bio" form="pf-form" class="pf-textarea" placeholder="Conte um pouco sobre você..." rows="3">{{ aluno.bio|default:"" }}</textarea>
+    </div>
+  </section>
+
+  <!-- Formulário (o POST acontece aqui) -->
+  <form method="POST" action="{% url 'entidades:perfil' %}" id="pf-form" novalidate>
+    {% csrf_token %}
+
+    <!-- Dados pessoais -->
+    <section class="card">
+      <h2 class="card-title">Dados pessoais</h2>
+      <div class="pf-grid2">
+
+        <div class="pf-field">
+          <label class="pf-lbl">Nome completo</label>
+          <span class="pf-val" id="view-nome">{{ user.get_full_name|default:"—" }}</span>
+          <input type="text" name="nome" class="pf-input pf-edit-field" style="display:none"
+                 value="{{ user.get_full_name }}" placeholder="Seu nome" id="input-nome" />
+          <span class="pf-field-error" id="err-nome"></span>
+        </div>
+
+        <div class="pf-field">
+          <label class="pf-lbl">E-mail</label>
+          <span class="pf-val" id="view-email">{{ user.email|default:"—" }}</span>
+          <input type="email" name="email" class="pf-input pf-edit-field" style="display:none"
+                 value="{{ user.email }}" placeholder="voce@campus.edu.br" id="input-email" />
+          <span class="pf-field-error" id="err-email"></span>
+        </div>
+
+        <div class="pf-field">
+          <label class="pf-lbl">Telefone</label>
+          <span class="pf-val" id="view-telefone">{{ aluno.telefone|default:"—" }}</span>
+          <input type="tel" name="telefone" class="pf-input pf-edit-field" style="display:none"
+                 value="{{ aluno.telefone|default:'' }}" placeholder="(81) 99999-0000" />
+        </div>
+
+        <div class="pf-field">
+          <label class="pf-lbl">Matrícula</label>
+          <span class="pf-val" id="view-matricula">{{ aluno.matricula|default:"—" }}</span>
+          <input type="text" name="matricula" class="pf-input pf-edit-field" style="display:none"
+                 value="{{ aluno.matricula|default:'' }}" placeholder="2022000000" id="input-matricula" />
+          <span class="pf-field-error" id="err-matricula"></span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Dados acadêmicos -->
+    <section class="card">
+      <h2 class="card-title">Dados acadêmicos</h2>
+      <div class="pf-grid2">
+
+        <div class="pf-field">
+          <label class="pf-lbl">Curso</label>
+          <span class="pf-val" id="view-curso">{{ aluno.curso|default:"—" }}</span>
+          <select name="curso" class="pf-select pf-edit-field" style="display:none" id="sel-curso">
+            {% for c in cursos %}
+              <option value="{{ c }}" {% if aluno.curso == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="pf-field">
+          <label class="pf-lbl">Campus</label>
+          <span class="pf-val" id="view-campus">—</span>
+          <select name="campus" class="pf-select pf-edit-field" style="display:none">
+            <option value="Campus Recife">Campus Recife</option>
+            <option value="Campus Caruaru">Campus Caruaru</option>
+            <option value="Campus Garanhuns">Campus Garanhuns</option>
+            <option value="Campus Petrolina">Campus Petrolina</option>
+            <option value="Campus Serra Talhada">Campus Serra Talhada</option>
+          </select>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Ações (ocultas até editar) -->
+    <div class="pf-actions" id="pf-actions" style="display:none">
+      <button type="button" class="btn btn-secondary" onclick="pfCancel()">Cancelar</button>
+      <button type="submit" class="btn btn-primary pf-btn-save" id="pf-save-btn">
+        Salvar alterações
+      </button>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+  const AVATARS = ["🧑‍💻","👩‍🎓","🧑‍🎓","👨‍🔬","👩‍🔬","🧑‍🏫","👩‍💼","🧑‍💼","🐱","🦊","🐸","🐧"];
+
+  // Monta o grid de avatares
+  const grid = document.getElementById('pf-av-grid');
+  const avInput = document.getElementById('pf-av-input');
+  const avDisplay = document.getElementById('pf-av-display');
+
+  AVATARS.forEach(function(av) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pf-av-opt' + (av === avInput.value ? ' pf-av-opt-active' : '');
+    btn.textContent = av;
+    btn.onclick = function() {
+      avInput.value = av;
+      avDisplay.textContent = av;
+      grid.querySelectorAll('.pf-av-opt').forEach(function(b) { b.classList.remove('pf-av-opt-active'); });
+      btn.classList.add('pf-av-opt-active');
+      document.getElementById('pf-av-picker').style.display = 'none';
+      // atualiza hero nome em tempo real
+      updateHero();
+    };
+    grid.appendChild(btn);
+  });
+
+  function pfTogglePicker() {
+    const p = document.getElementById('pf-av-picker');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function updateHero() {
+    const nomeInput = document.getElementById('input-nome');
+    const cursoSel  = document.getElementById('sel-curso');
+    if (nomeInput) document.getElementById('pf-hero-nome').textContent = nomeInput.value || 'Seu nome';
+    if (cursoSel)  document.getElementById('pf-hero-curso').textContent = cursoSel.value || '—';
+  }
+
+  function pfStartEdit() {
+    // Mostra campos de edição, esconde valores
+    document.querySelectorAll('.pf-edit-field').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('.pf-val').forEach(function(el) { el.style.display = 'none'; });
+    document.getElementById('pf-btn-edit').style.display = 'none';
+    document.getElementById('pf-av-btn').style.display = 'flex';
+    document.getElementById('pf-actions').style.display = 'flex';
+    document.getElementById('pf-bio-view').style.display = 'none';
+    document.getElementById('pf-bio-edit').style.display = 'block';
+
+    // Live update do hero
+    document.getElementById('input-nome').addEventListener('input', updateHero);
+    document.getElementById('sel-curso').addEventListener('change', updateHero);
+  }
+
+  function pfCancel() {
+    document.querySelectorAll('.pf-edit-field').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.pf-val').forEach(function(el) { el.style.display = ''; });
+    document.getElementById('pf-btn-edit').style.display = '';
+    document.getElementById('pf-av-btn').style.display = 'none';
+    document.getElementById('pf-actions').style.display = 'none';
+    document.getElementById('pf-bio-view').style.display = 'block';
+    document.getElementById('pf-bio-edit').style.display = 'none';
+    document.getElementById('pf-av-picker').style.display = 'none';
+    clearErrors();
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.pf-field-error').forEach(function(el) { el.textContent = ''; });
+    document.querySelectorAll('.pf-input-error').forEach(function(el) { el.classList.remove('pf-input-error'); });
+  }
+
+  // Validação client-side antes de submeter
+  document.getElementById('pf-form').addEventListener('submit', function(e) {
+    clearErrors();
+    let valid = true;
+
+    const nome      = document.getElementById('input-nome').value.trim();
+    const email     = document.getElementById('input-email').value;
+    const matricula = document.getElementById('input-matricula').value.trim();
+
+    if (!nome) {
+      document.getElementById('err-nome').textContent = 'Nome obrigatório.';
+      document.getElementById('input-nome').classList.add('pf-input-error');
+      valid = false;
+    }
+    if (!email.includes('@')) {
+      document.getElementById('err-email').textContent = 'E-mail inválido.';
+      document.getElementById('input-email').classList.add('pf-input-error');
+      valid = false;
+    }
+    if (!matricula) {
+      document.getElementById('err-matricula').textContent = 'Matrícula obrigatória.';
+      document.getElementById('input-matricula').classList.add('pf-input-error');
+      valid = false;
+    }
+
+    if (!valid) { e.preventDefault(); return; }
+
+    // Feedback de loading
+    const btn = document.getElementById('pf-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="pf-spinner"></span> Salvando...';
+  });
+</script>
+{% endblock %}      

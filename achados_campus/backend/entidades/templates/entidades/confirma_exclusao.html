@@ -1,0 +1,25 @@
+{% extends "entidades/base.html" %}
+{% load static %}
+
+{% block title %}Excluir — {{ item.nome }}{% endblock %}
+
+{% block content %}
+<div class="form-wrap">
+
+  <a href="{% url 'entidades:detalhe_item' item.pk %}" class="back-link">← Voltar</a>
+
+  <div class="card" style="border-color: rgba(255,107,107,0.25); background: rgba(255,107,107,0.04);">
+    <h2 class="form-title" style="color: #ff6b6b;">Excluir item</h2>
+    <p class="form-subtitle">Tem certeza que deseja excluir <strong>{{ item.nome }}</strong>? Esta ação não pode ser desfeita.</p>
+
+    <form method="POST" style="margin-top: 1.5rem;">
+      {% csrf_token %}
+      <div class="form-actions">
+        <a href="{% url 'entidades:detalhe_item' item.pk %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-danger">Sim, excluir</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
