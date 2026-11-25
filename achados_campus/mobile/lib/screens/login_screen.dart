@@ -39,7 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
     try {
       await ref.read(authProvider.notifier).login(_email.text, _senha.text);
-      // o redirect do router leva para /itens
+      if (mounted) context.go('/itens'); // página principal
     } on ApiException catch (e) {
       if (mounted) setState(() => _erro = e.message);
     } finally {

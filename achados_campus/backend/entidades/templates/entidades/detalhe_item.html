@@ -64,21 +64,42 @@
   </div>
 
   <!-- Reivindicação -->
-  {% if user.is_authenticated and user != item.cadastrado_por %}
-    {% if item.status_Item == 'ativo' %}
-      <div class="card detalhe-card-reiv">
-        <h2 class="card-title">Este item é seu?</h2>
-        <p class="detalhe-reiv-text">Envie uma reivindicação descrevendo como o item é seu.</p>
-        <a href="{% url 'entidades:reivindicar_item' item.pk %}" class="btn btn-primary">
-          Reivindicar item
-        </a>
-      </div>
-    {% elif item.status_Item == 'reivindicado' %}
-      <div class="card detalhe-card-warning">
-        <h2 class="card-title">Reivindicação em andamento</h2>
-        <p class="detalhe-reiv-text">Este item já possui uma reivindicação pendente de aprovação.</p>
-      </div>
-    {% endif %}
+  {% if reiv %}
+    <div class="card {% if reiv.status_Reivindicacao == 'pendente' %}detalhe-card-warning{% else %}detalhe-card-reiv{% endif %}">
+      <h2 class="card-title">Reivindicação {{ reiv.get_status_Reivindicacao_display|lower }}</h2>
+
+      {% if envolvido %}
+        <p class="detalhe-reiv-text"><strong>Requerente:</strong>
+          {{ reiv.requerente.get_full_name|default:reiv.requerente.username }}</p>
+        <p class="detalhe-reiv-text"><strong>Prova apresentada:</strong><br>{{ reiv.descricao_prova }}</p>
+      {% else %}
+        <p class="detalhe-reiv-text">Este item já possui uma reivindicação.</p>
+      {% endif %}
+
+      {% if contato %}
+        <p class="detalhe-reiv-text"><strong>Contato:</strong> {{ contato }}
+          {% if whatsapp %}
+            &nbsp;<a href="{{ whatsapp }}" target="_blank" rel="noopener" class="btn btn-secondary">Abrir no WhatsApp</a>
+          {% endif %}
+        </p>
+      {% endif %}
+
+      {% if pode_decidir %}
+        <form method="post" action="{% url 'entidades:decidir_reivindicacao' item.pk %}" class="detalhe-acoes-owner">
+          {% csrf_token %}
+          <button type="submit" name="decisao" value="recusada" class="btn btn-danger">Recusar</button>
+          <button type="submit" name="decisao" value="aprovada" class="btn btn-primary">Aprovar</button>
+        </form>
+      {% endif %}
+    </div>
+  {% elif pode_reivindicar %}
+    <div class="card detalhe-card-reiv">
+      <h2 class="card-title">Este item é seu?</h2>
+      <p class="detalhe-reiv-text">Envie uma reivindicação descrevendo como o item é seu.</p>
+      <a href="{% url 'entidades:reivindicar_item' item.pk %}" class="btn btn-primary">
+        Reivindicar item
+      </a>
+    </div>
   {% endif %}
 
   {% if not user.is_authenticated %}

@@ -1,6 +1,3 @@
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -9,12 +6,11 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .. import chatbot
-from ..models import Item, Reivindicacao
+from .. import chatbot, services
+from ..models import Item
 from .serializers import (
     CURSOS, CadastroSerializer, ItemSerializer, LoginSerializer,
-    PerfilSerializer, ReivindicacaoCriarSerializer, ReivindicacaoSerializer,
-    usuario_payload,
+    PerfilSerializer, ReivindicacaoSerializer, usuario_payload,
 )
 
 
@@ -25,6 +21,16 @@ def _tokens(user):
 
 def _erro(mensagem, codigo=status.HTTP_400_BAD_REQUEST):
     return Response({'detail': mensagem}, status=codigo)
+
+
+def _erro_servico(e: services.ServicoErro):
+    corpo = {e.campo: [e.mensagem]} if e.campo else {'detail': e.mensagem}
+    return Response(corpo, status=e.status)
+
+
+def _itens_qs():
+    return (Item.objects.select_related('cadastrado_por')
+            .prefetch_related('reivindicacoes__requerente'))
 
 
 # ---------------------------------------------------------------------------
@@ -51,15 +57,8 @@ class LoginView(APIView):
     def post(self, request):
         ser = LoginSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        ident = ser.validated_data['email'].strip()
-
-        # o login é o e-mail (username == e-mail), mas aceita também o username
-        user = authenticate(request, username=ident, password=ser.validated_data['senha'])
-        if user is None:
-            achado = User.objects.filter(email__iexact=ident).first()
-            if achado:
-                user = authenticate(
-                    request, username=achado.username, password=ser.validated_data['senha'])
+        user = services.autenticar(request, ser.validated_data['email'],
+                                   ser.validated_data['senha'])
         if user is None:
             return _erro('Usuário ou senha incorretos.', status.HTTP_401_UNAUTHORIZED)
         return Response({**_tokens(user), 'usuario': usuario_payload(user)})
@@ -103,7 +102,7 @@ class ItemListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
-        qs = Item.objects.select_related('cadastrado_por', 'reivindicacao__requerente')
+        qs = _itens_qs()
         p = self.request.query_params
 
         if p.get('meus') in ('1', 'true') and self.request.user.is_authenticated:
@@ -127,7 +126,7 @@ class ItemListCreateView(generics.ListCreateAPIView):
 class ItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ItemSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    queryset = Item.objects.select_related('cadastrado_por', 'reivindicacao__requerente')
+    queryset = _itens_qs()
 
     def _checar_dono(self, item):
         user = self.request.user
@@ -146,24 +145,12 @@ class ItemDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ReivindicarView(APIView):
     def post(self, request, pk):
-        item = get_object_or_404(Item, pk=pk)
-
-        if item.cadastrado_por_id == request.user.id:
-            return _erro('Você não pode reivindicar um item que você mesmo cadastrou.',
-                         status.HTTP_403_FORBIDDEN)
-        if hasattr(item, 'reivindicacao') or item.status_Item != 'ativo':
-            return _erro('Este item já possui uma reivindicação.', status.HTTP_409_CONFLICT)
-
-        ser = ReivindicacaoCriarSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-
-        with transaction.atomic():
-            reiv = Reivindicacao.objects.create(
-                item=item, requerente=request.user,
-                descricao_prova=ser.validated_data['descricao_prova'])
-            item.status_Item = 'reivindicado'
-            item.save(update_fields=['status_Item'])
-
+        item = get_object_or_404(_itens_qs(), pk=pk)
+        try:
+            reiv = services.criar_reivindicacao(
+                item, request.user, request.data.get('descricao_prova'))
+        except services.ServicoErro as e:
+            return _erro_servico(e)
         return Response(ReivindicacaoSerializer(reiv, context={'request': request}).data,
                         status=status.HTTP_201_CREATED)
 
@@ -172,24 +159,12 @@ class DecidirReivindicacaoView(APIView):
     """O dono do item (ou staff) aprova ou recusa a reivindicação."""
 
     def post(self, request, pk):
-        item = get_object_or_404(Item, pk=pk)
-        if item.cadastrado_por_id != request.user.id and not request.user.is_staff:
-            return _erro('Apenas quem cadastrou o item pode decidir.', status.HTTP_403_FORBIDDEN)
-
-        reiv = getattr(item, 'reivindicacao', None)
-        if reiv is None:
-            return _erro('Este item não possui reivindicação.', status.HTTP_404_NOT_FOUND)
-        if reiv.status_Reivindicacao != 'pendente':
-            return _erro('Esta reivindicação já foi decidida.', status.HTTP_409_CONFLICT)
-
-        decisao = request.data.get('decisao')
-        if decisao not in ('aprovada', 'recusada'):
-            return _erro('Decisão inválida. Use "aprovada" ou "recusada".')
-
-        reiv.status_Reivindicacao = decisao
-        reiv.save()  # o signal atualiza o status do item (entregue / ativo)
-
-        item.refresh_from_db()
+        item = get_object_or_404(_itens_qs(), pk=pk)
+        try:
+            item = services.decidir_reivindicacao(item, request.user, request.data.get('decisao'))
+        except services.ServicoErro as e:
+            return _erro_servico(e)
+        item = get_object_or_404(_itens_qs(), pk=item.pk)
         return Response(ItemSerializer(item, context={'request': request}).data)
 
 

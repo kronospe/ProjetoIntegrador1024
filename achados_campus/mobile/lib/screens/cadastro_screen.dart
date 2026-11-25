@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
 import '../services/api_exception.dart';
@@ -58,6 +59,10 @@ class _CadastroScreenState extends ConsumerState<CadastroScreen> {
             senha: _senha.text,
             confirmar: _confirmar.text,
           );
+      if (mounted) {
+        context.go('/itens'); // página principal
+        mostrarSnack(context, 'Conta criada! Complete seu perfil na aba Perfil.');
+      }
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {

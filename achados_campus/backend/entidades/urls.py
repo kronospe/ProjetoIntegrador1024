@@ -11,6 +11,7 @@ urlpatterns = [
     path('itens/<int:pk>/editar/', views.editar_item, name='editar_item'),
     path('itens/<int:pk>/excluir/', views.excluir_item, name='excluir_item'),
     path('itens/<int:pk>/reivindicar/', views.reivindicar_item, name='reivindicar_item'),
+    path('itens/<int:pk>/decidir/', views.decidir_reivindicacao_web, name='decidir_reivindicacao'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('cadastro/', views.cadastro_view, name='cadastro'),

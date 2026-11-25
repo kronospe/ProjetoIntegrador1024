@@ -94,9 +94,46 @@ class _ItensScreenState extends ConsumerState<ItensScreen> {
     _debounce = Timer(const Duration(milliseconds: 400), _recarregar);
   }
 
+  /// Recarrega as páginas já carregadas e troca a lista de uma vez,
+  /// sem limpar a tela, para manter a posição da rolagem.
+  Future<void> _sincronizar() async {
+    final paginas = _pagina - 1;
+    if (_carregando || paginas < 1) return _recarregar();
+
+    final geracao = ++_geracao;
+    try {
+      final novos = <Item>[];
+      var temMais = true;
+      var ultima = 0;
+      for (var p = 1; p <= paginas && temMais; p++) {
+        final r = await ref.read(apiProvider).listarItens(
+              q: _busca.text.trim(),
+              situacao: _situacao,
+              local: _local,
+              meus: widget.meus,
+              pagina: p,
+            );
+        novos.addAll(r.itens);
+        temMais = r.temMais;
+        ultima = p;
+      }
+      if (!mounted || geracao != _geracao) return;
+      setState(() {
+        _itens
+          ..clear()
+          ..addAll(novos);
+        _temMais = temMais;
+        _pagina = ultima + 1;
+        _carregando = false;
+      });
+    } on ApiException {
+      // mantém a lista que já estava na tela
+    }
+  }
+
   Future<void> _abrir(String rota) async {
     await context.push(rota);
-    if (mounted) _recarregar(); // pode ter criado/editado/excluído algo
+    if (mounted) _sincronizar(); // pode ter criado/editado/excluído algo
   }
 
   @override

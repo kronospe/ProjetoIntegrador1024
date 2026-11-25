@@ -56,14 +56,6 @@
         </div>
       </div>
 
-      <div class="field {% if forms.status_Item.errors %}field-has-error{% endif %}">
-        <label for="{{ forms.status_Item.id_for_label }}">Status</label>
-        {{ forms.status_Item }}
-        {% for erro in forms.status_Item.errors %}
-          <span class="field-error">{{ erro }}</span>
-        {% endfor %}
-      </div>
-
       <div class="field {% if forms.descricao.errors %}field-has-error{% endif %}">
         <label for="{{ forms.descricao.id_for_label }}">Descrição</label>
         {{ forms.descricao }}

@@ -1,6 +1,4 @@
-import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_localizations/flutter_localizations.dart' as loc;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme.dart';
@@ -22,11 +20,7 @@ class AchadosApp extends ConsumerWidget {
       routerConfig: ref.watch(routerProvider),
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        loc.GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
     );
   }
 }

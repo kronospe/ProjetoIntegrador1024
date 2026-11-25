@@ -1,6 +1,11 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.uploadedfile import UploadedFile
 from rest_framework import serializers
 
+from .. import services
+from ..imagens import processar_foto
 from ..models import Aluno, Item, Reivindicacao
 
 CURSOS = [
@@ -56,6 +61,12 @@ class CadastroSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs['senha'] != attrs['confirmar_senha']:
             raise serializers.ValidationError({'confirmar_senha': 'As senhas não coincidem.'})
+        # aplica AUTH_PASSWORD_VALIDATORS (senha comum, só números, parecida com o e-mail...)
+        try:
+            validate_password(attrs['senha'], user=User(
+                username=attrs['email'], email=attrs['email'], first_name=attrs['nome']))
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'senha': list(e.messages)})
         return attrs
 
     def create(self, validated_data):
@@ -83,62 +94,15 @@ class PerfilSerializer(serializers.Serializer):
     avatar = serializers.CharField(max_length=10, required=False, default='🧑‍💻')
     bio = serializers.CharField(required=False, allow_blank=True, default='')
 
-    def validate_nome(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError('Nome obrigatório.')
-        return value
-
-    def validate_email(self, value):
-        value = value.strip().lower()
-        user = self.context['request'].user
-        if User.objects.filter(username__iexact=value).exclude(pk=user.pk).exists() or \
-                User.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
-            raise serializers.ValidationError('Este e-mail já está em uso.')
-        return value
-
-    def _aluno_atual(self):
-        return Aluno.objects.filter(usuario=self.context['request'].user).first()
-
-    def validate_telefone(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError('Telefone obrigatório.')
-        aluno = self._aluno_atual()
-        qs = Aluno.objects.filter(telefone=value)
-        if aluno:
-            qs = qs.exclude(pk=aluno.pk)
-        if qs.exists():
-            raise serializers.ValidationError('Este telefone já está cadastrado.')
-        return value
-
-    def validate_matricula(self, value):
-        aluno = self._aluno_atual()
-        qs = Aluno.objects.filter(matricula=value)
-        if aluno:
-            qs = qs.exclude(pk=aluno.pk)
-        if qs.exists():
-            raise serializers.ValidationError('Esta matrícula já está cadastrada.')
-        return value
+    def validate(self, attrs):
+        # mesmas regras do site (unicidade de e-mail, telefone e matrícula etc.)
+        erros = services.erros_perfil(self.context['request'].user, attrs)
+        if erros:
+            raise serializers.ValidationError(erros)
+        return attrs
 
     def save(self, **kwargs):
-        user = self.context['request'].user
-        d = self.validated_data
-        primeiro, resto = _separar_nome(d['nome'])
-        user.first_name, user.last_name = primeiro, resto
-        user.email = d['email']
-        # o e-mail é o login: mantém o username em sincronia
-        user.username = d['email']
-        user.save()
-
-        aluno = self._aluno_atual() or Aluno(usuario=user)
-        aluno.telefone = d['telefone']
-        aluno.matricula = d['matricula']
-        aluno.curso = d['curso']
-        aluno.avatar = d.get('avatar') or '🧑‍💻'
-        aluno.bio = d.get('bio', '')
-        aluno.save()
-        return user
+        return services.salvar_perfil(self.context['request'].user, self.validated_data)
 
 
 # ---------------------------------------------------------------------------
@@ -153,11 +117,6 @@ class ReivindicacaoCriarSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Descreva melhor a prova (mínimo de 10 caracteres).')
         return value
-
-
-def _telefone(user):
-    aluno = Aluno.objects.filter(usuario=user).first()
-    return aluno.telefone if aluno else ''
 
 
 class ReivindicacaoSerializer(serializers.ModelSerializer):
@@ -176,15 +135,7 @@ class ReivindicacaoSerializer(serializers.ModelSerializer):
 
     def get_contato(self, obj):
         """Telefone da outra parte, só depois de aprovada e só para os envolvidos."""
-        if obj.status_Reivindicacao != 'aprovada':
-            return None
-        user = self.context['request'].user
-        dono = obj.item.cadastrado_por
-        if user == dono:
-            return _telefone(obj.requerente)
-        if user == obj.requerente:
-            return _telefone(dono)
-        return None
+        return services.contato_liberado(obj, self.context['request'].user)
 
 
 # ---------------------------------------------------------------------------
@@ -269,8 +220,12 @@ class ItemSerializer(serializers.ModelSerializer):
         return value
 
     def validate_foto(self, value):
-        if value and value.size > 5 * 1024 * 1024:
-            raise serializers.ValidationError('A foto deve ter no máximo 5 MB.')
+        # só processa uploads novos (valida o conteúdo, limita a 1280 px, converte p/ JPEG)
+        if isinstance(value, UploadedFile):
+            try:
+                return processar_foto(value)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError(e.messages)
         return value
 
     def create(self, validated_data):

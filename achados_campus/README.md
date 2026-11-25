@@ -16,7 +16,7 @@ cp .env.example .env          # ajuste SECRET_KEY (e o Postgres, se quiser)
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver 0.0.0.0:8000
-python manage.py test         # 18 testes da API
+python manage.py test         # 33 testes (API + site)
 ```
 
 Sem as variáveis `DB_*` o projeto usa SQLite, ótimo para desenvolvimento.
@@ -39,6 +39,17 @@ Com `DB_NAME` preenchido, usa o PostgreSQL como antes.
 | POST | `chatbot/` | `{mensagem}` → `{resposta}` |
 
 Autenticação: header `Authorization: Bearer <access>`.
+
+### Regras compartilhadas (`entidades/services.py`)
+Site e API usam as mesmas funções para login, perfil e reivindicações
+(`autenticar`, `erros_perfil`/`salvar_perfil`, `criar_reivindicacao`, `decidir_reivindicacao`),
+então uma regra só existe em um lugar. As fotos passam por `entidades/imagens.py`
+(valida o conteúdo, corrige a rotação, limita a 1280 px e converte para JPEG).
+
+### Reivindicações
+`Reivindicacao.item` agora é `ForeignKey`: uma reivindicação **recusada** fica no histórico e o item
+pode ser reivindicado de novo. Só pode existir **uma ativa** (pendente ou aprovada) por item
+(constraint no banco). Depois de atualizar, rode `python manage.py migrate`.
 
 ### O que mudou no backend
 - `settings.py`: `SECRET_KEY`, `DEBUG` e `ALLOWED_HOSTS` vêm do ambiente; DRF, JWT e CORS configurados.

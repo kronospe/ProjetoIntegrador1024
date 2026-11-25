@@ -89,7 +89,19 @@ class Item(models.Model):
     
     def __str__(self):
 
-        return f'[{self.get_situacao_display()}] {self.nome}'
+        return f'[{self.get_situacao_Item_display()}] {self.nome}'
+
+    @property
+    def reivindicacao(self):
+        """Reivindicação em andamento (pendente) ou concluída (aprovada).
+
+        As recusadas ficam no histórico (`reivindicacoes`), mas não bloqueiam
+        novas reivindicações. Usa `.all()` para aproveitar o prefetch.
+        """
+        for r in self.reivindicacoes.all():
+            if r.status_Reivindicacao in Reivindicacao.STATUS_ATIVOS:
+                return r
+        return None
     
 class Reivindicacao(models.Model):
 
@@ -100,7 +112,9 @@ class Reivindicacao(models.Model):
 
     ]
          
-    item = models.OneToOneField(Item, on_delete = models.CASCADE, related_name = 'reivindicacao', verbose_name = 'Item reivindicacao')
+    STATUS_ATIVOS = ('pendente', 'aprovada')
+
+    item = models.ForeignKey(Item, on_delete = models.CASCADE, related_name = 'reivindicacoes', verbose_name = 'Item reivindicacao')
     descricao_prova = models.TextField('Prova que o Item é seu')
     status_Reivindicacao = models.CharField('Status reivindicacao', max_length = 20, choices = STATUS_REIVINDICACAO, default = 'pendente')
     criado_em = models.DateTimeField(auto_now_add = True)
@@ -118,6 +132,15 @@ class Reivindicacao(models.Model):
 
         verbose_name = 'Reivindicação'
         verbose_name_plural = 'Reivindicações'
+        ordering = ['-criado_em']
+        constraints = [
+            # no máximo uma reivindicação ativa (pendente/aprovada) por item
+            models.UniqueConstraint(
+                fields=['item'],
+                condition=models.Q(status_Reivindicacao__in=['pendente', 'aprovada']),
+                name='uma_reivindicacao_ativa_por_item',
+            ),
+        ]
 
     def __str__(self):
 

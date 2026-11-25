@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/format.dart';
+import '../core/telefone.dart';
 import '../core/theme.dart';
 import '../models/item.dart';
 import '../services/api_exception.dart';
@@ -78,6 +80,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       if (mounted) mostrarSnack(context, e.message, erro: true);
     } finally {
       if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  Future<void> _abrirWhatsapp(String telefone) async {
+    final url = whatsappUrl(telefone);
+    if (url == null) return;
+    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      mostrarSnack(context, 'Não foi possível abrir o WhatsApp.', erro: true);
     }
   }
 
@@ -219,6 +230,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               SelectableText('Contato: ${r.contato}',
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ]),
+            if (whatsappUrl(r.contato) != null) ...[
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                onPressed: () => _abrirWhatsapp(r.contato!),
+                icon: const Icon(Icons.chat),
+                label: const Text('Abrir no WhatsApp'),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.green),
+              ),
+            ],
           ],
         ]),
       ),

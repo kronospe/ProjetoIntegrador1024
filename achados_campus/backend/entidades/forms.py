@@ -1,4 +1,6 @@
 from django import forms
+from django.core.files.uploadedfile import UploadedFile
+from .imagens import processar_foto
 from .models import Item, Reivindicacao
 
 class ItemForm(forms.ModelForm):
@@ -18,11 +20,17 @@ class ItemForm(forms.ModelForm):
             'descricao',
             'local',
             'situacao_Item',
-            'status_Item',
             'icone',
             'foto',
             'data_encontro',
         ]
+
+    def clean_foto(self):
+        foto = self.cleaned_data.get('foto')
+        # só processa uploads novos (limita a 1280 px e converte para JPEG)
+        if isinstance(foto, UploadedFile):
+            return processar_foto(foto)
+        return foto
 
 class ReivindicacaoForm(forms.ModelForm):
     class Meta:
