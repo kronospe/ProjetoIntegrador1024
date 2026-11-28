@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.uploadedfile import UploadedFile
@@ -44,6 +45,9 @@ class CadastroSerializer(serializers.Serializer):
     email = serializers.EmailField()
     senha = serializers.CharField(write_only=True, min_length=8, trim_whitespace=False)
     confirmar_senha = serializers.CharField(write_only=True, trim_whitespace=False)
+    telefone = serializers.CharField(max_length=15)
+    matricula = serializers.IntegerField()
+    curso = serializers.CharField(max_length=100)
 
     def validate_nome(self, value):
         value = value.strip()
@@ -59,6 +63,10 @@ class CadastroSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        # telefone, matrícula e curso: mesmas regras do perfil
+        erros = services.erros_aluno(attrs)
+        if erros:
+            raise serializers.ValidationError(erros)
         if attrs['senha'] != attrs['confirmar_senha']:
             raise serializers.ValidationError({'confirmar_senha': 'As senhas não coincidem.'})
         # aplica AUTH_PASSWORD_VALIDATORS (senha comum, só números, parecida com o e-mail...)
@@ -69,15 +77,15 @@ class CadastroSerializer(serializers.Serializer):
             raise serializers.ValidationError({'senha': list(e.messages)})
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
-        primeiro, resto = _separar_nome(validated_data['nome'])
-        return User.objects.create_user(
+        user = User.objects.create_user(
             username=validated_data['email'],
             email=validated_data['email'],
             password=validated_data['senha'],
-            first_name=primeiro,
-            last_name=resto,
         )
+        # grava nome, telefone, matrícula e curso (mesma rotina do perfil)
+        return services.salvar_perfil(user, validated_data)
 
 
 class LoginSerializer(serializers.Serializer):

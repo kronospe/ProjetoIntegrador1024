@@ -53,11 +53,15 @@ class AuthTests(APITestCase):
     def test_cadastro_e_login(self):
         r = self.client.post('/api/auth/cadastro/', {
             'nome': 'Ana Souza', 'email': 'ANA@x.com',
-            'senha': 'senha12345', 'confirmar_senha': 'senha12345'}, format='json')
+            'senha': 'senha12345', 'confirmar_senha': 'senha12345',
+            'telefone': '(81) 99999-0000', 'matricula': 555, 'curso': 'Física'}, format='json')
         self.assertEqual(r.status_code, 201, r.data)
         self.assertIn('access', r.data)
         self.assertEqual(r.data['usuario']['email'], 'ana@x.com')
-        self.assertFalse(r.data['usuario']['perfil_completo'])
+        self.assertTrue(r.data['usuario']['perfil_completo'])
+        self.assertEqual(r.data['usuario']['curso'], 'Física')
+        aluno = Aluno.objects.get(usuario__email='ana@x.com')
+        self.assertEqual((aluno.telefone, aluno.matricula), ('(81) 99999-0000', 555))
 
         r = self.client.post('/api/auth/login/',
                              {'email': 'ana@x.com', 'senha': 'senha12345'}, format='json')
@@ -68,10 +72,33 @@ class AuthTests(APITestCase):
         novo_usuario('dup@x.com')
         r = self.client.post('/api/auth/cadastro/', {
             'nome': 'X', 'email': 'dup@x.com',
-            'senha': 'curta', 'confirmar_senha': 'outra'}, format='json')
+            'senha': 'curta', 'confirmar_senha': 'outra',
+            'telefone': '(81) 99999-0000', 'matricula': 1, 'curso': 'Física'}, format='json')
         self.assertEqual(r.status_code, 400)
         self.assertIn('email', r.data)
         self.assertIn('senha', r.data)
+
+    def test_cadastro_exige_telefone_matricula_e_curso(self):
+        r = self.client.post('/api/auth/cadastro/', {
+            'nome': 'Sem Dados', 'email': 'sem@x.com',
+            'senha': 'senha12345', 'confirmar_senha': 'senha12345'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        for campo in ('telefone', 'matricula', 'curso'):
+            self.assertIn(campo, r.data)
+        self.assertFalse(User.objects.filter(email='sem@x.com').exists())
+
+    def test_cadastro_rejeita_telefone_e_matricula_repetidos(self):
+        outro = novo_usuario('outro@x.com')
+        Aluno.objects.create(usuario=outro, telefone='(81) 91111-1111', matricula=10, curso='Física')
+        r = self.client.post('/api/auth/cadastro/', {
+            'nome': 'Novo Aluno', 'email': 'novo@x.com',
+            'senha': 'senha12345', 'confirmar_senha': 'senha12345',
+            'telefone': '(81) 91111-1111', 'matricula': 10, 'curso': 'Física'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('telefone', r.data)
+        self.assertIn('matricula', r.data)
+        # nada foi criado pela metade
+        self.assertFalse(User.objects.filter(email='novo@x.com').exists())
 
     def test_login_invalido(self):
         novo_usuario('a@x.com')
@@ -282,7 +309,8 @@ class ChatbotTests(APITestCase):
     def test_opcoes(self):
         r = self.client.get('/api/opcoes/')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['icones']), 8)
+        self.assertEqual(len(r.data['icones']), 9)
+        self.assertIn({'valor': 'fa-box-open', 'nome': 'Outros'}, r.data['icones'])
 
 
 # ---------------------------------------------------------------------------
@@ -344,7 +372,8 @@ class RevisaoApiTests(APITestCase):
         for senha in ('12345678', 'password', 'a@x.comx'):
             r = self.client.post('/api/auth/cadastro/', {
                 'nome': 'Fulano', 'email': 'fulano@x.com',
-                'senha': senha, 'confirmar_senha': senha}, format='json')
+                'senha': senha, 'confirmar_senha': senha,
+                'telefone': '(81) 98888-0000', 'matricula': 77, 'curso': 'Física'}, format='json')
             self.assertEqual(r.status_code, 400, senha)
             self.assertIn('senha', r.data)
 
@@ -475,3 +504,15 @@ class RevisaoWebTests(TestCase):
     def test_perfil_sem_campo_campus_fantasma(self):
         self.client.force_login(self.dono)
         self.assertNotContains(self.client.get(reverse('entidades:perfil')), 'name="campus"')
+
+
+@override_settings(MEDIA_ROOT=MEDIA_TMP)
+class CategoriaOutrosTests(APITestCase):
+    def test_item_com_categoria_outros(self):
+        u = novo_usuario('o@x.com')
+        self.client.force_authenticate(u)
+        r = self.client.post('/api/itens/', item_payload(icone='fa-box-open', nome='Guarda-chuva'),
+                             format='multipart')
+        self.assertEqual(r.status_code, 201, r.data)
+        self.assertEqual(r.data['icone'], 'fa-box-open')
+        self.assertEqual(str(Item.objects.get(pk=r.data['id']).get_icone_display()), 'Outros')

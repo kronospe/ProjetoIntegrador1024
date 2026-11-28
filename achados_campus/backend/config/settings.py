@@ -14,6 +14,7 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import urllib.parse
 
 load_dotenv()
 
@@ -85,7 +86,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if os.environ.get('DB_NAME'):
+# Banco de dados -------------------------------------------------------------
+# Prioridade: DATABASE_URL (Supabase) > DB_* (Postgres próprio) > SQLite (desenvolvimento)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    _u = urllib.parse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _u.path.lstrip('/') or 'postgres',
+            'USER': urllib.parse.unquote(_u.username or ''),
+            'PASSWORD': urllib.parse.unquote(_u.password or ''),
+            'HOST': _u.hostname,
+            'PORT': _u.port or 5432,
+            'OPTIONS': {'sslmode': 'require'},
+            # Pooler do Supabase em modo "transaction" (porta 6543):
+            'CONN_MAX_AGE': 0,
+            'DISABLE_SERVER_SIDE_CURSORS': True,
+        }
+    }
+elif os.environ.get('DB_NAME'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -177,3 +198,39 @@ CORS_ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()
 ]
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# ---------------------------------------------------------------------------
+# Fotos no Supabase Storage (protocolo S3) — só ativa se as variáveis existirem.
+# Sem elas, as fotos continuam indo para a pasta media/ (desenvolvimento).
+# ---------------------------------------------------------------------------
+if os.environ.get('SUPABASE_S3_ACCESS_KEY'):
+    _ref = os.environ['SUPABASE_PROJECT_REF']
+    _bucket = os.environ['SUPABASE_BUCKET']
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+            'OPTIONS': {
+                'bucket_name': _bucket,
+                'access_key': os.environ['SUPABASE_S3_ACCESS_KEY'],
+                'secret_key': os.environ['SUPABASE_S3_SECRET_KEY'],
+                'endpoint_url': os.environ['SUPABASE_S3_ENDPOINT'],
+                'region_name': os.environ['SUPABASE_S3_REGION'],
+                'addressing_style': 'path',
+                # URL pública das fotos: https://<ref>.supabase.co/storage/v1/object/public/<bucket>/<arquivo>
+                'custom_domain': f'{_ref}.supabase.co/storage/v1/object/public/{_bucket}',
+                'querystring_auth': False,
+                'file_overwrite': False,
+            },
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+
+# ---------------------------------------------------------------------------
+# Produção (Vercel)
+# ---------------------------------------------------------------------------
+# Ex.: CSRF_TRUSTED_ORIGINS=https://seu-projeto.vercel.app  (necessário para o /admin/)
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()
+]

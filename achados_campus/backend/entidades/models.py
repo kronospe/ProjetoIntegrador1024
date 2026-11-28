@@ -59,6 +59,7 @@ class Item(models.Model):
         ('fa-shirt', 'Roupas/Casacos'),
         ('fa-glasses', 'Óculos'),
         ('fa-backpack', 'Bolsas/Mochilas'),
+        ('fa-box-open', 'Outros'),
     ]
 
     nome = models.CharField('Nome do item encontrado', max_length = 50)

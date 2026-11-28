@@ -39,23 +39,13 @@ def autenticar(request, identificador, senha):
 # --------------------------------------------------------------------------
 # Perfil
 # --------------------------------------------------------------------------
-def erros_perfil(user, dados):
-    """Valida os dados do perfil. Retorna {campo: mensagem} (vazio se ok)."""
+def erros_aluno(dados, aluno=None):
+    """Valida telefone, matrícula e curso (obrigatórios e únicos).
+
+    `aluno` é o registro atual, quando existe, para não acusar duplicidade
+    com ele mesmo. Retorna {campo: mensagem}.
+    """
     erros = {}
-    aluno = Aluno.objects.filter(usuario=user).first()
-
-    if not (dados.get('nome') or '').strip():
-        erros['nome'] = 'Nome obrigatório.'
-
-    email = (dados.get('email') or '').strip().lower()
-    try:
-        validate_email(email)
-    except DjangoValidationError:
-        erros['email'] = 'E-mail inválido.'
-    else:
-        if (User.objects.filter(username__iexact=email).exclude(pk=user.pk).exists()
-                or User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists()):
-            erros['email'] = 'Este e-mail já está em uso.'
 
     telefone = (dados.get('telefone') or '').strip()
     if not telefone:
@@ -80,6 +70,28 @@ def erros_perfil(user, dados):
 
     if not (dados.get('curso') or '').strip():
         erros['curso'] = 'Selecione seu curso.'
+    return erros
+
+
+def erros_perfil(user, dados):
+    """Valida os dados do perfil. Retorna {campo: mensagem} (vazio se ok)."""
+    erros = {}
+    aluno = Aluno.objects.filter(usuario=user).first()
+
+    if not (dados.get('nome') or '').strip():
+        erros['nome'] = 'Nome obrigatório.'
+
+    email = (dados.get('email') or '').strip().lower()
+    try:
+        validate_email(email)
+    except DjangoValidationError:
+        erros['email'] = 'E-mail inválido.'
+    else:
+        if (User.objects.filter(username__iexact=email).exclude(pk=user.pk).exists()
+                or User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists()):
+            erros['email'] = 'Este e-mail já está em uso.'
+
+    erros.update(erros_aluno(dados, aluno))
     return erros
 
 
