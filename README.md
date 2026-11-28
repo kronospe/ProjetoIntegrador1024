@@ -100,10 +100,3 @@ lib/
 ├── screens/                      (login, cadastro, itens, detalhe, formulário, reivindicar, perfil, assistente)
 └── widgets/common.dart           (cards, tags, campos, ícones)
 ```
-
-## 3. Produção — pontos de atenção
-- **Fotos:** o backend grava em `media/` no disco. Em Vercel/serverless isso não persiste; use S3, Cloudinary
-  ou Supabase Storage (`django-storages`). Em uma VPS/Render/Railway com disco persistente funciona como está.
-- O Vercel não é a melhor opção para Django + uploads; Render, Railway ou Fly.io costumam ser mais simples.
-- Defina `DEBUG=False`, `ALLOWED_HOSTS`, uma `SECRET_KEY` nova e HTTPS.
-- Aponte o app para a URL final com `--dart-define=API_BASE_URL=https://seu-dominio`.
