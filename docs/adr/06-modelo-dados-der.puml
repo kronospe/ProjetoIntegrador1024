@@ -1,0 +1,94 @@
+@startuml
+title Campus Achados Mobile Edition - Modelo de Dados (DER lógico)
+hide circle
+skinparam linetype ortho
+
+entity "usuario" as usuario {
+  * id : uuid <<PK>>
+  --
+  * nome : varchar(120)
+  * email : varchar(160) <<UK>>
+  matricula : varchar(20)
+  * senha_hash : varchar(100)
+  * perfil : varchar(15)  -- USUARIO | OPERACAO
+  * criado_em : timestamp
+}
+
+entity "categoria" as categoria {
+  * id : int <<PK>>
+  --
+  * nome : varchar(60) <<UK>>
+}
+
+entity "local" as local {
+  * id : int <<PK>>
+  --
+  * nome : varchar(100) <<UK>>
+}
+
+entity "objeto" as objeto {
+  * id : uuid <<PK>>
+  --
+  * cadastrante_id : uuid <<FK>>
+  * categoria_id : int <<FK>>
+  * local_id : int <<FK>>
+  * descricao : text
+  * data : date
+  * status : varchar(15)  -- PERDIDO | ENCONTRADO | EM_DEVOLUCAO | DEVOLVIDO | ENCERRADO
+  * criado_em : timestamp
+}
+
+entity "foto" as foto {
+  * id : uuid <<PK>>
+  --
+  * objeto_id : uuid <<FK>>
+  * url : varchar(300)
+}
+
+entity "solicitacao_devolucao" as solicitacao {
+  * id : uuid <<PK>>
+  --
+  * objeto_id : uuid <<FK>>
+  * solicitante_id : uuid <<FK>>
+  * data_solicitacao : timestamp
+  * status : varchar(15)  -- PENDENTE | APROVADA | REJEITADA | CANCELADA
+}
+
+entity "informacao_comprovacao" as comprovacao {
+  * id : uuid <<PK>>
+  --
+  * solicitacao_id : uuid <<FK>>
+  * descricao : text
+}
+
+entity "notificacao" as notificacao {
+  * id : uuid <<PK>>
+  --
+  * destinatario_id : uuid <<FK>>
+  * solicitacao_id : uuid <<FK>>
+  * mensagem : varchar(255)
+  * status_envio : varchar(12)  -- PENDENTE | ENVIADA | FALHA
+  * tentativas : int
+  data_envio : timestamp
+}
+
+usuario ||--o{ objeto : cadastra
+usuario ||--o{ solicitacao : solicita
+usuario ||--o{ notificacao : recebe
+categoria ||--o{ objeto
+local ||--o{ objeto
+objeto ||--o{ foto
+objeto ||--o{ solicitacao : "é alvo de"
+solicitacao ||--|{ comprovacao
+solicitacao ||--o{ notificacao : origina
+
+note bottom of objeto
+  Índices: (categoria_id), (local_id), (data),
+  GIN full-text em descricao (RNF-01).
+  Único: no máx. 1 solicitacao PENDENTE por objeto.
+end note
+note bottom of foto
+  RN-05: objeto ENCONTRADO exige >= 1 foto
+  (validado na aplicação).
+end note
+@enduml
